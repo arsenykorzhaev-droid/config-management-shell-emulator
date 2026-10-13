@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vfs name="MinimalVFS">
+    <file name="hello.txt">Привет, мир!</file>
+</vfs>
