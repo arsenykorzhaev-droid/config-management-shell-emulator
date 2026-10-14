@@ -3,7 +3,7 @@ from tkinter import scrolledtext
 import os
 import shlex
 import argparse
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as et
 
 
 class VFSNode:
@@ -27,7 +27,7 @@ class VFS:
 
     def load_from_xml(self, path):
         try:
-            tree = ET.parse(path)
+            tree = et.parse(path)
             root_xml = tree.getroot()
 
             if 'name' in root_xml.attrib:
@@ -40,7 +40,7 @@ class VFS:
             return True, "OK"
         except FileNotFoundError:
             return False, f"Файл VFS не найден: {path}"
-        except ET.ParseError as e:
+        except et.ParseError as e:
             return False, f"Ошибка парсинга XML: {e}"
         except Exception as e:
             return False, f"Ошибка загрузки VFS: {e}"
@@ -85,15 +85,34 @@ class ShellEmulator:
         self.vfs = VFS(vfs_name)
         self.current_dir = "/"
 
+        self._setup_window()
+        self._setup_output_area()
+        self._setup_input_area()
+
+        self.print_to_output(f"Добро пожаловать в {self.vfs_name}!")
+
+        if self.vfs_path:
+            self.load_vfs(self.vfs_path)
+        else:
+            self.print_to_output("VFS по умолчанию (пустая).")
+
+        self.print_to_output("Введите 'help' для списка команд.")
+
+        if self.script_path:
+            self.run_startup_script(self.script_path)
+
+    def _setup_window(self):
         self.root.title(f"Эмулятор оболочки - {self.vfs_name}")
         self.root.geometry("800x600")
 
+    def _setup_output_area(self):
         self.output_area = scrolledtext.ScrolledText(
-            root, wrap=tk.WORD, state='disabled', font=("Consolas", 10)
+            self.root, wrap=tk.WORD, state='disabled', font=("Consolas", 10)
         )
         self.output_area.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
-        self.input_frame = tk.Frame(root)
+    def _setup_input_area(self):
+        self.input_frame = tk.Frame(self.root)
         self.input_frame.pack(padx=10, pady=(0, 10), fill=tk.X)
 
         self.prompt_label = tk.Label(
@@ -107,18 +126,6 @@ class ShellEmulator:
         self.command_entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.command_entry.bind("<Return>", self.execute_command)
         self.command_entry.focus()
-
-        self.print_to_output(f"Добро пожаловать в {self.vfs_name}!")
-
-        if self.vfs_path:
-            self.load_vfs(self.vfs_path)
-        else:
-            self.print_to_output("VFS по умолчанию (пустая).")
-
-        self.print_to_output("Введите 'help' для списка команд.")
-
-        if self.script_path:
-            self.run_startup_script(self.script_path)
 
     def print_to_output(self, text):
         self.output_area.config(state='normal')
@@ -201,16 +208,21 @@ class ShellEmulator:
         if command == "exit":
             self.root.quit()
             self.root.destroy()
-        elif command == "help":
-            self.print_to_output("Команды: ls, cd, pwd, cat, help, exit")
-        elif command == "pwd":
-            self.print_to_output(self.current_dir)
-        elif command == "ls":
-            self._cmd_ls(args)
-        elif command == "cd":
-            self._cmd_cd(args)
-        elif command == "cat":
-            self._cmd_cat(args)
+            return
+
+        commands = {
+            "help": lambda: self.print_to_output(
+                "Команды: ls, cd, pwd, cat, help, exit"
+            ),
+            "pwd": lambda: self.print_to_output(self.current_dir),
+            "ls": lambda: self._cmd_ls(args),
+            "cd": lambda: self._cmd_cd(args),
+            "cat": lambda: self._cmd_cat(args),
+        }
+
+        func = commands.get(command)
+        if func:
+            func()
         else:
             self.print_to_output(f"Ошибка: команда '{command}' не найдена.")
 
@@ -290,15 +302,18 @@ class ShellEmulator:
             extra = [p for p in path.split("/") if p]
             parts = base + extra
 
+        return self._build_path(parts)
+
+    def _build_path(self, parts):
         result = []
         for part in parts:
             if part == ".":
                 continue
-            elif part == "..":
+            if part == "..":
                 if result:
                     result.pop()
-            else:
-                result.append(part)
+                continue
+            result.append(part)
 
         return "/" + "/".join(result) if result else "/"
 

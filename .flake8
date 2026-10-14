@@ -1,0 +1,4 @@
+[flake8]
+max-line-length = 100
+per-file-ignores =
+    tests/test_parser.py: N802
