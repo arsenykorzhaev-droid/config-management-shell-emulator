@@ -1,0 +1,24 @@
+# Тестирование VFS
+
+pwd
+ls
+cd /home/user
+pwd
+ls
+cat readme.txt
+cd /
+ls
+cd /nonexistent
+abracadabra
+rev /home/user/readme.txt
+history
+find readme.txt
+find nonexistent
+
+# === ЭТАП 5 ===
+ls /home/user
+rm /home/user/notes.txt
+ls /home/user
+rm /home/user/nonexistent.txt
+rm /home
+rm /
