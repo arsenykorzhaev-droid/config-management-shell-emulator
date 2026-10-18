@@ -10,3 +10,9 @@ cd /
 ls
 cd /nonexistent
 abracadabra
+# === Тестирование команд Этапа 4 ===
+rev /home/user/readme.txt
+history
+find readme.txt
+find user
+find nonexistent
