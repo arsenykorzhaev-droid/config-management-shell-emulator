@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vfs name="MyVFS">
+    <dir name="home">
+        <dir name="user">
+            <file name="readme.txt">Это тестовый файл в VFS.</file>
+            <file name="notes.txt">Заметки пользователя.</file>
+        </dir>
+    </dir>
+    <dir name="etc">
+        <file name="config.ini">[settings]
+theme=dark
+language=ru</file>
+    </dir>
+    <file name="motd.txt">Добро пожаловать в виртуальную файловую систему!</file>
+</vfs>

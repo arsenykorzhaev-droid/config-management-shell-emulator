@@ -1,0 +1,12 @@
+# Тестирование VFS
+
+pwd
+ls
+cd /home/user
+pwd
+ls
+cat readme.txt
+cd /
+ls
+cd /nonexistent
+abracadabra
