@@ -3,10 +3,12 @@ from tkinter import scrolledtext
 import os
 import shlex
 import argparse
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as et
 
 
 class VFSNode:
+    """Узел виртуальной файловой системы."""
+
     def __init__(self, name, is_dir=False, content=""):
         self.name = name
         self.is_dir = is_dir
@@ -14,20 +16,25 @@ class VFSNode:
         self.children = {}
 
     def add_child(self, node):
+        """Добавляет дочерний узел."""
         self.children[node.name] = node
 
     def get_child(self, name):
+        """Возвращает дочерний узел по имени."""
         return self.children.get(name)
 
 
 class VFS:
+    """Виртуальная файловая система в памяти."""
+
     def __init__(self, name="MyVFS"):
         self.name = name
         self.root = VFSNode("/", is_dir=True)
 
     def load_from_xml(self, path):
+        """Загружает VFS из XML-файла."""
         try:
-            tree = ET.parse(path)
+            tree = et.parse(path)
             root_xml = tree.getroot()
 
             if 'name' in root_xml.attrib:
@@ -36,18 +43,17 @@ class VFS:
             self.root = VFSNode("/", is_dir=True)
             for child in root_xml:
                 self._parse_node(child, self.root)
-
             return True, "OK"
         except FileNotFoundError:
             return False, f"Файл VFS не найден: {path}"
-        except ET.ParseError as e:
+        except et.ParseError as e:
             return False, f"Ошибка парсинга XML: {e}"
         except Exception as e:
             return False, f"Ошибка загрузки VFS: {e}"
 
     def _parse_node(self, xml_node, parent):
+        """Рекурсивно разбирает узлы XML."""
         node_name = xml_node.attrib.get('name', 'unnamed')
-
         if xml_node.tag == 'dir':
             dir_node = VFSNode(node_name, is_dir=True)
             parent.add_child(dir_node)
@@ -59,6 +65,7 @@ class VFS:
             parent.add_child(file_node)
 
     def find_node(self, path):
+        """Ищет узел по указанному пути."""
         if path == "/" or path == "":
             return self.root
 
@@ -71,11 +78,12 @@ class VFS:
             current = current.get_child(part)
             if current is None:
                 return None
-
         return current
 
 
 class ShellEmulator:
+    """Главный класс эмулятора командной оболочки."""
+
     def __init__(self, root, vfs_name="MyVFS", vfs_path=None, script_path=None):
         self.root = root
         self.vfs_name = vfs_name
@@ -102,9 +110,7 @@ class ShellEmulator:
         )
         self.prompt_label.pack(side=tk.LEFT)
 
-        self.command_entry = tk.Entry(
-            self.input_frame, font=("Consolas", 10)
-        )
+        self.command_entry = tk.Entry(self.input_frame, font=("Consolas", 10))
         self.command_entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.command_entry.bind("<Return>", self.execute_command)
         self.command_entry.focus()
@@ -122,12 +128,14 @@ class ShellEmulator:
             self.run_startup_script(self.script_path)
 
     def print_to_output(self, text):
+        """Выводит текст в область вывода."""
         self.output_area.config(state='normal')
         self.output_area.insert(tk.END, text + "\n")
         self.output_area.config(state='disabled')
         self.output_area.see(tk.END)
 
     def load_vfs(self, path):
+        """Загружает VFS и обновляет заголовок окна."""
         self.print_to_output(f"Загрузка VFS из: {path}")
         success, message = self.vfs.load_from_xml(path)
         if success:
@@ -138,9 +146,11 @@ class ShellEmulator:
             self.print_to_output(f"Ошибка: {message}")
 
     def expand_env_vars(self, text):
+        """Раскрывает переменные окружения в строке."""
         return os.path.expandvars(text)
 
     def parse_command(self, command_line):
+        """Разделяет строку на команду и аргументы."""
         try:
             parts = shlex.split(command_line)
         except ValueError:
@@ -150,6 +160,7 @@ class ShellEmulator:
         return parts[0], parts[1:]
 
     def run_startup_script(self, script_path):
+        """Выполняет команды из стартового скрипта."""
         if not os.path.isfile(script_path):
             self.print_to_output(f"Ошибка: скрипт не найден: {script_path}")
             return
@@ -164,23 +175,27 @@ class ShellEmulator:
             return
 
         for line_number, line in enumerate(lines, start=1):
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-
-            self.print_to_output(f"> {stripped}")
-            expanded = self.expand_env_vars(stripped)
-            command, args = self.parse_command(expanded)
-
-            if command is None:
-                self.print_to_output(f"Ошибка: строка {line_number}.")
-                continue
-
-            self._execute_parsed_command(command, args)
+            self._process_script_line(line, line_number)
 
         self.print_to_output("Скрипт завершён.")
 
+    def _process_script_line(self, line, line_number):
+        """Обрабатывает одну строку скрипта."""
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            return
+
+        self.print_to_output(f"> {stripped}")
+        expanded = self.expand_env_vars(stripped)
+        command, args = self.parse_command(expanded)
+
+        if command is None:
+            self.print_to_output(f"Ошибка: строка {line_number}.")
+            return
+        self._execute_parsed_command(command, args)
+
     def execute_command(self, event):
+        """Обрабатывает команду, введенную пользователем."""
         command_line = self.command_entry.get()
         self.command_entry.delete(0, tk.END)
 
@@ -188,17 +203,16 @@ class ShellEmulator:
             return
 
         self.print_to_output(f"> {command_line}")
-
         expanded_line = self.expand_env_vars(command_line)
         command, args = self.parse_command(expanded_line)
 
         if command is None:
             self.print_to_output("Ошибка: не удалось разобрать команду.")
             return
-
         self._execute_parsed_command(command, args)
 
     def _execute_parsed_command(self, command, args):
+        """Маршрутизация команд."""
         if command not in ("history", "exit"):
             self.history.append(f"{command} {' '.join(args)}".strip())
 
@@ -209,24 +223,17 @@ class ShellEmulator:
             self.print_to_output("Команды: ls, cd, pwd, cat, rev, history, find, rm, help, exit")
         elif command == "pwd":
             self.print_to_output(self.current_dir)
-        elif command == "ls":
-            self._cmd_ls(args)
-        elif command == "cd":
-            self._cmd_cd(args)
-        elif command == "cat":
-            self._cmd_cat(args)
-        elif command == "rev":
-            self._cmd_rev(args)
-        elif command == "history":
-            self._cmd_history(args)
-        elif command == "find":
-            self._cmd_find(args)
-        elif command == "rm":
-            self._cmd_rm(args)
+        elif command in ("ls", "cd", "cat", "rev", "history", "find", "rm"):
+            method = getattr(self, f"_cmd_{command}", None)
+            if method:
+                method(args)
+            else:
+                self.print_to_output(f"Ошибка: команда '{command}' не найдена.")
         else:
             self.print_to_output(f"Ошибка: команда '{command}' не найдена.")
 
     def _cmd_ls(self, args):
+        """Выводит содержимое директории."""
         if not args:
             path = self.current_dir
         elif len(args) == 1:
@@ -243,7 +250,6 @@ class ShellEmulator:
         if not node.is_dir:
             self.print_to_output(node.name)
             return
-
         if not node.children:
             self.print_to_output("(пусто)")
             return
@@ -253,6 +259,7 @@ class ShellEmulator:
             self.print_to_output(f" {name}{suffix}")
 
     def _cmd_cd(self, args):
+        """Сменяет текущую директорию."""
         if len(args) > 1:
             self.print_to_output("Ошибка: 'cd' принимает максимум 1 аргумент.")
             return
@@ -267,14 +274,13 @@ class ShellEmulator:
         if node is None:
             self.print_to_output(f"Ошибка: директория не найдена: {path}")
             return
-
         if not node.is_dir:
             self.print_to_output(f"Ошибка: не директория: {path}")
             return
-
         self.current_dir = self._normalize_path(path)
 
     def _cmd_cat(self, args):
+        """Выводит содержимое файла."""
         if len(args) != 1:
             self.print_to_output("Ошибка: 'cat' требует 1 аргумент.")
             return
@@ -283,17 +289,17 @@ class ShellEmulator:
         if node is None:
             self.print_to_output(f"Ошибка: файл не найден: {args[0]}")
             return
-
         if node.is_dir:
             self.print_to_output(f"Ошибка: '{args[0]}' — директория.")
             return
-
         self.print_to_output(node.content)
 
     def _cmd_rev(self, args):
+        """Выводит строки файла в обратном порядке."""
         if len(args) != 1:
             self.print_to_output("Ошибка: 'rev' требует 1 аргумент.")
             return
+
         node = self._resolve_path(args[0])
         if node is None:
             self.print_to_output(f"Ошибка: файл не найден: {args[0]}")
@@ -301,27 +307,33 @@ class ShellEmulator:
         if node.is_dir:
             self.print_to_output(f"Ошибка: '{args[0]}' — директория.")
             return
+
         lines = node.content.splitlines()
         for line in reversed(lines):
             self.print_to_output(line)
 
     def _cmd_history(self, args):
+        """Выводит историю команд."""
         if args:
             self.print_to_output("Ошибка: 'history' не принимает аргументов.")
             return
         if not self.history:
             self.print_to_output("(история пуста)")
             return
+
         for i, cmd in enumerate(self.history, start=1):
             self.print_to_output(f" {i} {cmd}")
 
     def _cmd_find(self, args):
+        """Ищет файлы и папки по имени."""
         if len(args) != 1:
             self.print_to_output("Ошибка: 'find' требует 1 аргумент (имя).")
             return
+
         target = args[0]
         results = []
         self._find_recursive(self.vfs.root, "/", target, results)
+
         if not results:
             self.print_to_output(f"Не найдено: {target}")
         else:
@@ -329,6 +341,7 @@ class ShellEmulator:
                 self.print_to_output(path)
 
     def _find_recursive(self, node, current_path, target, results):
+        """Рекурсивный поиск по VFS."""
         for name, child in node.children.items():
             child_path = f"{current_path.rstrip('/')}/{name}"
             if name == target:
@@ -337,29 +350,28 @@ class ShellEmulator:
                 self._find_recursive(child, child_path, target, results)
 
     def _cmd_rm(self, args):
+        """Удаляет файл или пустую директорию из памяти."""
         if len(args) != 1:
             self.print_to_output("Ошибка: 'rm' требует 1 аргумент (путь).")
             return
 
         path = self._normalize_path(args[0])
-
         if path == "/":
             self.print_to_output("Ошибка: нельзя удалить корень.")
             return
 
         parent_path = "/".join(path.split("/")[:-1]) or "/"
         name = path.split("/")[-1]
-
         parent = self.vfs.find_node(parent_path)
+
         if parent is None or not parent.is_dir:
-            self.print_to_output(f"Ошибка: родительская директория не найдена: {parent_path}")
+            self.print_to_output("Ошибка: директория не найдена.")
             return
 
         target = parent.get_child(name)
         if target is None:
             self.print_to_output(f"Ошибка: не найдено: {path}")
             return
-
         if target.is_dir and target.children:
             self.print_to_output(f"Ошибка: директория не пуста: {path}")
             return
@@ -368,10 +380,12 @@ class ShellEmulator:
         self.print_to_output(f"Удалено: {path}")
 
     def _resolve_path(self, path):
+        """Возвращает узел по абсолютному пути."""
         abs_path = self._normalize_path(path)
         return self.vfs.find_node(abs_path)
 
     def _normalize_path(self, path):
+        """Приводит путь к абсолютному виду."""
         if path.startswith("/"):
             parts = [p for p in path.split("/") if p]
         else:
@@ -388,18 +402,22 @@ class ShellEmulator:
                     result.pop()
             else:
                 result.append(part)
-
         return "/" + "/".join(result) if result else "/"
 
 
 def parse_arguments():
+    """Парсит аргументы командной строки."""
     parser = argparse.ArgumentParser(
-        description="Эмулятор командной оболочки ОС — Этап 5"
+        description="Эмулятор командной оболочки ОС"
     )
-    parser.add_argument("--vfs-path", dest="vfs_path", type=str, default=None,
-                        help="Путь к физическому расположению VFS (XML-файл)")
-    parser.add_argument("--script", dest="script_path", type=str, default=None,
-                        help="Путь к стартовому скрипту")
+    parser.add_argument(
+        "--vfs-path", dest="vfs_path", type=str, default=None,
+        help="Путь к VFS"
+    )
+    parser.add_argument(
+        "--script", dest="script_path", type=str, default=None,
+        help="Путь к скрипту"
+    )
     return parser.parse_args()
 
 

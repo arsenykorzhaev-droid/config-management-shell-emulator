@@ -8,7 +8,7 @@ from main import ShellEmulator, VFS, VFSNode
 
 
 class TestParser(unittest.TestCase):
-    def setUp(self):
+    def setup(self):
         self.emulator = ShellEmulator.__new__(ShellEmulator)
 
     def test_parse_simple(self):
