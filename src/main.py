@@ -36,10 +36,8 @@ class VFS:
         try:
             tree = et.parse(path)
             root_xml = tree.getroot()
-
             if 'name' in root_xml.attrib:
                 self.name = root_xml.attrib['name']
-
             self.root = VFSNode("/", is_dir=True)
             for child in root_xml:
                 self._parse_node(child, self.root)
@@ -68,10 +66,8 @@ class VFS:
         """Ищет узел по указанному пути."""
         if path == "/" or path == "":
             return self.root
-
         parts = [p for p in path.split("/") if p]
         current = self.root
-
         for part in parts:
             if not current.is_dir:
                 return None
@@ -89,7 +85,6 @@ class ShellEmulator:
         self.vfs_name = vfs_name
         self.vfs_path = vfs_path
         self.script_path = script_path
-
         self.vfs = VFS(vfs_name)
         self.current_dir = "/"
         self.history = []
@@ -109,19 +104,16 @@ class ShellEmulator:
             self.input_frame, text="> ", font=("Consolas", 10)
         )
         self.prompt_label.pack(side=tk.LEFT)
-
         self.command_entry = tk.Entry(self.input_frame, font=("Consolas", 10))
         self.command_entry.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.command_entry.bind("<Return>", self.execute_command)
         self.command_entry.focus()
 
         self.print_to_output(f"Добро пожаловать в {self.vfs_name}!")
-
         if self.vfs_path:
             self.load_vfs(self.vfs_path)
         else:
             self.print_to_output("VFS по умолчанию (пустая).")
-
         self.print_to_output("Введите 'help' для списка команд.")
 
         if self.script_path:
@@ -164,7 +156,6 @@ class ShellEmulator:
         if not os.path.isfile(script_path):
             self.print_to_output(f"Ошибка: скрипт не найден: {script_path}")
             return
-
         self.print_to_output(f"Выполнение скрипта: {script_path}")
 
         try:
@@ -174,9 +165,8 @@ class ShellEmulator:
             self.print_to_output(f"Ошибка чтения скрипта: {e}")
             return
 
-        for line_number, line in enumerate(lines, start=1):
-            self._process_script_line(line, line_number)
-
+        for i, line in enumerate(lines, start=1):
+            self._process_script_line(line, i)
         self.print_to_output("Скрипт завершён.")
 
     def _process_script_line(self, line, line_number):
@@ -184,11 +174,9 @@ class ShellEmulator:
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             return
-
         self.print_to_output(f"> {stripped}")
         expanded = self.expand_env_vars(stripped)
         command, args = self.parse_command(expanded)
-
         if command is None:
             self.print_to_output(f"Ошибка: строка {line_number}.")
             return
@@ -198,14 +186,11 @@ class ShellEmulator:
         """Обрабатывает команду, введенную пользователем."""
         command_line = self.command_entry.get()
         self.command_entry.delete(0, tk.END)
-
         if not command_line.strip():
             return
-
         self.print_to_output(f"> {command_line}")
         expanded_line = self.expand_env_vars(command_line)
         command, args = self.parse_command(expanded_line)
-
         if command is None:
             self.print_to_output("Ошибка: не удалось разобрать команду.")
             return
@@ -220,7 +205,8 @@ class ShellEmulator:
             self.root.quit()
             self.root.destroy()
         elif command == "help":
-            self.print_to_output("Команды: ls, cd, pwd, cat, rev, history, find, rm, help, exit")
+            msg = "Команды: ls, cd, pwd, cat, rev, history, find, rm, help"
+            self.print_to_output(msg + ", exit")
         elif command == "pwd":
             self.print_to_output(self.current_dir)
         elif command in ("ls", "cd", "cat", "rev", "history", "find", "rm"):
@@ -241,19 +227,16 @@ class ShellEmulator:
         else:
             self.print_to_output("Ошибка: 'ls' принимает максимум 1 аргумент.")
             return
-
         node = self._resolve_path(path)
         if node is None:
             self.print_to_output(f"Ошибка: путь не найден: {path}")
             return
-
         if not node.is_dir:
             self.print_to_output(node.name)
             return
         if not node.children:
             self.print_to_output("(пусто)")
             return
-
         for name, child in sorted(node.children.items()):
             suffix = "/" if child.is_dir else ""
             self.print_to_output(f" {name}{suffix}")
@@ -263,14 +246,11 @@ class ShellEmulator:
         if len(args) > 1:
             self.print_to_output("Ошибка: 'cd' принимает максимум 1 аргумент.")
             return
-
         if not args:
             self.current_dir = "/"
             return
-
         path = args[0]
         node = self._resolve_path(path)
-
         if node is None:
             self.print_to_output(f"Ошибка: директория не найдена: {path}")
             return
@@ -284,7 +264,6 @@ class ShellEmulator:
         if len(args) != 1:
             self.print_to_output("Ошибка: 'cat' требует 1 аргумент.")
             return
-
         node = self._resolve_path(args[0])
         if node is None:
             self.print_to_output(f"Ошибка: файл не найден: {args[0]}")
@@ -299,7 +278,6 @@ class ShellEmulator:
         if len(args) != 1:
             self.print_to_output("Ошибка: 'rev' требует 1 аргумент.")
             return
-
         node = self._resolve_path(args[0])
         if node is None:
             self.print_to_output(f"Ошибка: файл не найден: {args[0]}")
@@ -307,7 +285,6 @@ class ShellEmulator:
         if node.is_dir:
             self.print_to_output(f"Ошибка: '{args[0]}' — директория.")
             return
-
         lines = node.content.splitlines()
         for line in reversed(lines):
             self.print_to_output(line)
@@ -320,7 +297,6 @@ class ShellEmulator:
         if not self.history:
             self.print_to_output("(история пуста)")
             return
-
         for i, cmd in enumerate(self.history, start=1):
             self.print_to_output(f" {i} {cmd}")
 
@@ -329,11 +305,9 @@ class ShellEmulator:
         if len(args) != 1:
             self.print_to_output("Ошибка: 'find' требует 1 аргумент (имя).")
             return
-
         target = args[0]
         results = []
         self._find_recursive(self.vfs.root, "/", target, results)
-
         if not results:
             self.print_to_output(f"Не найдено: {target}")
         else:
@@ -354,20 +328,16 @@ class ShellEmulator:
         if len(args) != 1:
             self.print_to_output("Ошибка: 'rm' требует 1 аргумент (путь).")
             return
-
         path = self._normalize_path(args[0])
         if path == "/":
             self.print_to_output("Ошибка: нельзя удалить корень.")
             return
-
         parent_path = "/".join(path.split("/")[:-1]) or "/"
         name = path.split("/")[-1]
         parent = self.vfs.find_node(parent_path)
-
         if parent is None or not parent.is_dir:
             self.print_to_output("Ошибка: директория не найдена.")
             return
-
         target = parent.get_child(name)
         if target is None:
             self.print_to_output(f"Ошибка: не найдено: {path}")
@@ -375,7 +345,6 @@ class ShellEmulator:
         if target.is_dir and target.children:
             self.print_to_output(f"Ошибка: директория не пуста: {path}")
             return
-
         del parent.children[name]
         self.print_to_output(f"Удалено: {path}")
 
