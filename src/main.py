@@ -362,6 +362,10 @@ class ShellEmulator:
             extra = [p for p in path.split("/") if p]
             parts = base + extra
 
+        return self._build_clean_path(parts)
+
+    def _build_clean_path(self, parts):
+        """Очищает путь от '.' и обрабатывает '..'."""
         result = []
         for part in parts:
             if part == ".":
