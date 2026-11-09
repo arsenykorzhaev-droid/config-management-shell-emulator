@@ -1,0 +1,8 @@
+{
+    "package_name": "Newtonsoft.Json",
+    "repo_url": "https://api.nuget.org/v3/index.json",
+    "test_mode": false,
+    "output_file": "graph.png",
+    "ascii_tree": true,
+    "filter_substring": "Microsoft"
+}
