@@ -20,8 +20,16 @@ def load_config(config_path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Инструмент визуализации графа зависимостей")
-    parser.add_argument("--config", dest="config_path", required=True, help="Путь к JSON-файлу конфигурации")
+    """Главная функция приложения."""
+    parser = argparse.ArgumentParser(
+        description="Инструмент визуализации графа зависимостей"
+    )
+    parser.add_argument(
+        "--config",
+        dest="config_path",
+        required=True,
+        help="Путь к JSON-файлу конфигурации"
+    )
     args = parser.parse_args()
 
     config = load_config(args.config_path)
@@ -46,9 +54,11 @@ def main():
     print("------------------------------")
 
     if config["test_mode"]:
-        print(f"Внимание: Включен режим тестирования. Будет использован файл: {config['repo_url']}")
+        print("Внимание: Включен режим тестирования.")
+        print(f"Будет использован файл: {config['repo_url']}")
     else:
-        print(f"Внимание: Режим реального репозитория. Будет использован URL: {config['repo_url']}")
+        print("Внимание: Режим реального репозитория.")
+        print(f"Будет использован URL: {config['repo_url']}")
 
 
 if __name__ == "__main__":
