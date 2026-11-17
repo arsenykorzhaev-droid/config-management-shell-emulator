@@ -24,41 +24,46 @@ def load_config(config_path):
 def get_nuget_dependencies(package_name, test_mode):
     """Получает прямые зависимости пакета из NuGet."""
     if test_mode:
-        # Если включен тестовый режим, возвращаем фейковые данные
         return ["Newtonsoft.Json", "Microsoft.Extensions.Logging"]
 
-    # Реальный запрос к API NuGet
-    url = f"https://api.nuget.org/v3-flatcontainer/{package_name.lower()}/index.json"
+    base_url = "https://api.nuget.org/v3-flatcontainer"
+    url = f"{base_url}/{package_name.lower()}/index.json"
 
     try:
-        # Получаем список версий
         with urllib.request.urlopen(url) as response:
             data = json.loads(response.read().decode())
             versions = data.get("versions", [])
             if not versions:
                 return []
 
-            # Берем последнюю версию
-            latest_version = versions[-1]
-
-            # Скачиваем .nuspec файл (описание пакета)
-            nuspec_url = f"https://api.nuget.org/v3-flatcontainer/{package_name.lower()}/{latest_version}/{package_name.lower()}.nuspec"
+            latest = versions[-1]
+            nuspec_url = (
+                f"{base_url}/{package_name.lower()}/{latest}/"
+                f"{package_name.lower()}.nuspec"
+            )
             req = urllib.request.Request(nuspec_url)
 
             with urllib.request.urlopen(req) as res:
                 nuspec_xml = res.read().decode('utf-8')
 
-            # Ищем зависимости в XML с помощью регулярного выражения
             deps = re.findall(r'<dependency id="([^"]+)"', nuspec_xml)
-            return list(set(deps))  # Убираем дубликаты
+            return list(set(deps))
     except Exception as e:
         print(f"Ошибка при получении данных: {e}")
         return []
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Инструмент визуализации графа зависимостей")
-    parser.add_argument("--config", dest="config_path", required=True, help="Путь к JSON-файлу конфигурации")
+    """Главная функция приложения."""
+    parser = argparse.ArgumentParser(
+        description="Инструмент визуализации графа зависимостей"
+    )
+    parser.add_argument(
+        "--config",
+        dest="config_path",
+        required=True,
+        help="Путь к JSON-файлу конфигурации"
+    )
     args = parser.parse_args()
 
     config = load_config(args.config_path)
